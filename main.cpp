@@ -12,14 +12,14 @@ int main(int argc, char *argv[]) {
 
     std::cout << "starting bot" << std::endl;
 
-	Message Message;
-	Bot Bot;
+    Message Message;
+    Bot Bot;
 
-	Bot.Token = "Token";
+    Bot.Token = "Token";
 
-	Bot.Online(Message, [&] {
-	    std::cout << "New Message Arrived" << std::endl;
-	    std::cout << "-----------------------------" << std::endl;
+    Bot.Online(Message, [&] {
+        std::cout << "New Message Arrived" << std::endl;
+        std::cout << "-----------------------------" << std::endl;
         std::cout << "user id: " << Message.Data.UserID << std::endl;
         std::cout << "username: " << Message.Data.UserName << std::endl;
         std::cout << "message id: " << Message.Data.MessageID << std::endl;
