@@ -4,12 +4,13 @@
 #include <sstream>
 #include <ostream>
 #include <fstream>
+#include <limits>
 
 void Help(Message& Message, Bot& Bot);
 int RegSeller(Message& Message, Bot& Bot);
 void UnregSeller(Message& Message, Bot& Bot);
-void Deposit(Message& Message, Bot& Bot);
-void Withdraw(Message& Message, Bot& Bot);
+int Deposit(Message& Message, Bot& Bot);
+int Withdraw(Message& Message, Bot& Bot);
 int Balance(Message& Message, Bot& Bot);
 
 void tokenize(std::string const &str, const char delim,
@@ -31,7 +32,7 @@ int main(int argc, char *argv[]) {
     Message Message;
     Bot Bot;
 
-    Bot.Token = "Token";
+    Bot.Token = "token";
 
     Bot.Online(Message, [&] {
         std::cout << "New Message Arrived" << std::endl;
@@ -136,12 +137,199 @@ void UnregSeller(Message& Message, Bot& Bot) {
 
 }
 
-void Withdraw(Message& Message, Bot& Bot) {
+int Withdraw(Message& Message, Bot& Bot) {
 
+    // /withdraw user type amount
+    const char delim = ' ';
+    std::vector<std::string> out;
+    tokenize(Message.Data.Text, delim, out);
+
+    if (out.size() != 3) {
+        Message.TextReply(0, Bot.Token, "usage: \n\n/withdraw Type amount\nresource: (M - Money, G - Gold, O - Oil, R - Ore, U - Uranium, D - Diamonds)");
+        return 1;
+    }
+
+    std::ifstream DBRead("TradeDB.txt");
+    std::string Line;
+    std::ofstream DBWrite;
+
+    DBWrite.open("Temp.txt", std::ofstream::app);;
+
+    std::string UserName, UserID;
+    long long int Money, Gold, Oil, Ore, Uranium, Diamonds;
+
+    std::string User = "@";
+    User.append(Message.Data.UserName);
+
+    bool UserFlag = false;
+    bool PoorFlag = false;
+    while (std::getline(DBRead, Line)) {
+        if (Line.substr(0, Line.find(" ")) == User) {
+            long long int Amount;
+            try {
+                //shits not workin
+                Amount = std::stoll(out[2]);
+            }
+            catch (...) {
+                Amount = 0;
+            }
+            std::istringstream iss(Line);
+            if (!(iss >> UserName >> UserID >> Money >> Gold >> Oil >> Ore >> Uranium >> Diamonds)) { break; }
+
+            if (UserName == User) {
+
+                UserFlag = true;
+                switch (out[1][0]) {
+                    case 'M':
+                        if (Amount <= Money) {
+                            Money -= Amount;
+                        } else {
+                            Message.SendText(0, Bot.Token, "you dont have enough money :(");
+                            PoorFlag = true;
+                        }
+                        break;
+                    case 'G': if (Amount <= Gold) {
+                            Gold -= Amount;
+                        } else {
+                            Message.SendText(0, Bot.Token, "you dont have enough money :(");
+                            PoorFlag = true;
+                        }
+                        break;
+                    case 'O': if (Amount <= Oil) {
+                            Oil -= Amount;
+                        } else {
+                            Message.SendText(0, Bot.Token, "you dont have enough money :(");
+                            PoorFlag = true;
+                        }
+                        break;
+                    case 'R': if (Amount <= Ore) {
+                            Ore -= Amount;
+                        } else {
+                            Message.SendText(0, Bot.Token, "you dont have enough money :(");
+                        }
+                        break;
+                    case 'U': if (Amount <= Uranium) {
+                            Uranium -= Amount;
+                        } else {
+                            Message.SendText(0, Bot.Token, "you dont have enough money :(");
+                            PoorFlag = true;
+                        }
+                        break;
+                    case 'D': if (Amount <= Diamonds) {
+                            Diamonds -= Amount;
+                        } else {
+                            Message.SendText(0, Bot.Token, "you dont have enough money :(");
+                            PoorFlag = true;
+                        }
+                        break;
+                }
+
+                if (!PoorFlag) {
+                    std::ostringstream Text;
+                    Text << "Withdrawing " << Amount << " " << out[1] << " from user " << UserName;
+                    Message.SendText(0, Bot.Token, Text.str());
+                }
+            }
+            DBWrite << UserName << " " << UserID << " " << Money << " " << Gold << " " << Oil << " " << Ore << " " << Uranium << " " << Diamonds << "\n";
+        }
+    }
+
+    if (!UserFlag) {
+        Message.SendText(0, Bot.Token, "mentioned user does not exist");
+    }
+
+    DBWrite.close();
+    DBRead.close();
+
+    std::rename("TradeDB.txt", "TradeDB.TMP");
+    std::rename("Temp.txt", "TradeDB.txt");
+    std::remove("TradeDB.TMP");
+    return 0;
 }
 
-void Deposit(Message& Message, Bot& Bot) {
+int Deposit(Message& Message, Bot& Bot) {
 
+    // /withdraw user type amount
+    const char delim = ' ';
+    std::vector<std::string> out;
+    tokenize(Message.Data.Text, delim, out);
+
+    if (out.size() != 3) {
+        Message.TextReply(0, Bot.Token, "usage: \n\n/deposit Type amount\nresource: (M - Money, G - Gold, O - Oil, R - Ore, U - Uranium, D - Diamonds)");
+        return 1;
+    }
+
+    std::ifstream DBRead("TradeDB.txt");
+    std::string Line;
+    std::ofstream DBWrite;
+
+    DBWrite.open("Temp.txt", std::ofstream::app);
+    //Database << out[1].c_str() << " " << out[2].c_str() << " 0 0 0 0 0 0 \n";
+
+    std::string UserName, UserID;
+    long long int Money, Gold, Oil, Ore, Uranium, Diamonds;
+
+    std::string User = "@";
+    User.append(Message.Data.UserName);
+
+    bool UserFlag = false;
+    while (std::getline(DBRead, Line)) {
+        if (Line.substr(0, Line.find(" ")) == User) {
+            long long int Amount;
+            try {
+                //shits not workin
+                Amount = std::stoll(out[2]);
+            }
+            catch (...) {
+                Amount = 0;
+            }
+            std::istringstream iss(Line);
+            if (!(iss >> UserName >> UserID >> Money >> Gold >> Oil >> Ore >> Uranium >> Diamonds)) { break; }
+
+            if (UserName == User) {
+
+                UserFlag = true;
+                switch (out[1][0]) {
+                    case 'M':
+                        Money += Amount;
+                        break;
+                    case 'G':
+                            Gold += Amount;
+                        break;
+                    case 'O':
+                            Oil += Amount;
+                        break;
+                    case 'R':
+                            Ore += Amount;
+                        break;
+                    case 'U':
+                            Uranium += Amount;
+                        break;
+                    case 'D':
+                            Diamonds += Amount;
+                        break;
+                }
+
+                std::ostringstream Text;
+                Text << "adding " << Amount << " " << out[1] << " from user " << UserName;
+                Message.SendText(0, Bot.Token, Text.str());
+
+            }
+            DBWrite << UserName << " " << UserID << " " << Money << " " << Gold << " " << Oil << " " << Ore << " " << Uranium << " " << Diamonds << "\n";
+        }
+    }
+
+    if (!UserFlag) {
+        Message.SendText(0, Bot.Token, "mentioned user does not exist");
+    }
+
+    DBWrite.close();
+    DBRead.close();
+
+    std::rename("TradeDB.txt", "TradeDB.TMP");
+    std::rename("Temp.txt", "TradeDB.txt");
+    std::remove("TradeDB.TMP");
+    return 0;
 }
 
 int Balance(Message& Message, Bot& Bot) {
@@ -159,7 +347,7 @@ int Balance(Message& Message, Bot& Bot) {
     std::string Line;
 
     std::string UserName, UserID;
-    int Money, Gold, Oil, Ore, Uranium, Diamonds;
+    long long int Money, Gold, Oil, Ore, Uranium, Diamonds;
     while (std::getline(DB, Line)) {
         if (Line.substr(0, Line.find(" ")) == out[1]) {
             std::istringstream iss(Line);
